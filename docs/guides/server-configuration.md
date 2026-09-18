@@ -38,16 +38,16 @@ See the full [list of available protocols](https://docs.propellerheads.xyz/tycho
 
 Every named protocol is checked against the ones your Tycho endpoint serves. A protocol that is not served logs a warning and is dropped from the list rather than stopping the solver.
 
-### Including RFQ Protocols
+### Including Off-Chain Priced Venues
 
-Include RFQ (Request-for-Quote) protocols alongside on-chain protocols. Use the `all_onchain` keyword to combine auto-fetched on-chain protocols with specific RFQ protocols:
+Venues whose pricing arrives as a complete book from the venue itself — the RFQ market makers (Bebop, Hashflow, Liquorice, Native) and the off-chain-priced pAMM Metric — are named with the `rfq:` prefix and can run alongside on-chain protocols. Fynd opens a feed for `rfq:bebop` and `rfq:hashflow`; any other `rfq:` entry is skipped with a warning. Use the `all_onchain` keyword to combine auto-fetched on-chain protocols with specific `rfq:` entries:
 
 ```bash
 fynd serve \
   --protocols all_onchain,rfq:bebop
 ```
 
-Or specify both on-chain and RFQ protocols explicitly:
+Or specify both on-chain protocols and `rfq:` entries explicitly:
 
 ```bash
 fynd serve \
@@ -56,12 +56,12 @@ fynd serve \
 
 **Limitations:**
 
-* RFQ protocols cannot run alone. At least one on-chain protocol is required.
-* When encoding is enabled (`encoding_options` in the quote request), RFQ quotes require an additional round-trip to the RFQ provider to fetch a signed quote. This can add significant tail latency to solve times. If you are using RFQ protocols, consider quoting first without encoding to evaluate the price, and only request encoding once you are confident the quote is worth executing.
+* `rfq:` venues cannot serve quotes on their own. At least one on-chain protocol is required. Fynd does start and the feed does publish, but books carry no block, so with no on-chain protocol the market never gets a block label, derived data never builds, and every quote returns `not_ready`.
+* When encoding is enabled (`encoding_options` in the quote request), the RFQ venues require an additional round-trip to the provider to fetch a signed quote (Metric does not). This can add significant tail latency to solve times. If you are using RFQ venues, consider quoting first without encoding to evaluate the price, and only request encoding once you are confident the quote is worth executing.
 
 **Environment variables:**
 
-* RFQ protocols require API keys passed via environment variables. Check the [RFQ protocol docs](https://docs.propellerheads.xyz/tycho/for-solvers/request-for-quote-protocols) for the specific variables each protocol needs.
+* Every `rfq:` venue requires API keys passed via environment variables. Check the [off-chain priced venue docs](https://docs.propellerheads.xyz/tycho/for-solvers/request-for-quote-protocols) for the specific variables each protocol needs.
 
 ### pAMM Price Level Stream
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, fmt, time::Duration};
+use std::{collections::HashMap, fmt};
 
 use tokio_stream::Stream;
 use tracing::{info, warn};
@@ -31,13 +31,6 @@ use tycho_simulation::{
     },
     price_level_stream::{config::default_served_pamms, stream::PriceLevelStreamBuilder},
     protocol::models::Update,
-    rfq::{
-        protocols::{
-            bebop::{client_builder::BebopClientBuilder, state::BebopState},
-            hashflow::{client_builder::HashflowClientBuilder, state::HashflowState},
-        },
-        stream::RFQStreamBuilder,
-    },
     tycho_client::feed::{component_tracker::ComponentFilter, synchronizer::ComponentWithState},
     tycho_common::models::token::Token,
     tycho_core::Bytes,
@@ -59,9 +52,11 @@ const EXCLUSIVE_CAPABLE_PROTOCOLS: &[&str] = &["ekubo_v3"];
 /// Tycho, e.g. `pricelevelstream:fermiswap`.
 const PRICE_LEVEL_STREAM_PREFIX: &str = "pricelevelstream:";
 
-/// Marks a `--protocols` entry served from an RFQ client rather than from Tycho, e.g.
-/// `rfq:bebop`.
-const RFQ_PREFIX: &str = "rfq:";
+/// Marks a `--protocols` entry served from a book feed rather than from Tycho, e.g. `rfq:bebop`.
+///
+/// The value is the protocol system the venue stamps on its components, so an entry and the
+/// components it brings share one spelling.
+pub(crate) const RFQ_PREFIX: &str = "rfq:";
 
 /// Marks a `--protocols` entry that drops a protocol system from the list rather than adding one,
 /// e.g. `exclude:vm:fermiswap`.
@@ -119,15 +114,18 @@ const PRICE_LEVEL_STREAM_CHAIN: Chain = Chain::Ethereum;
 
 /// Whether a `--protocols` entry names a Tycho protocol system.
 ///
-/// The RFQ clients and the pAMM price level stream each connect to their own endpoint, so their
-/// entries never appear among the protocol systems Tycho serves.
+/// Venues behind a `rfq:` entry, and the pAMM price level stream, each connect to their own
+/// endpoint, so their entries never appear among the protocol systems Tycho serves.
 pub fn is_tycho_system(entry: &str) -> bool {
     !entry.starts_with(RFQ_PREFIX) && !entry.starts_with(PRICE_LEVEL_STREAM_PREFIX)
 }
 
 /// Whether any requested protocol is streamed from Tycho.
 ///
-/// A list naming only RFQ or price level stream entries needs no Tycho protocol stream at all.
+/// A list of only `rfq:` and price level stream entries needs no Tycho protocol stream at all,
+/// and `TychoFeed` opens none. Only the price level stream can carry a configuration on its own,
+/// though: its updates are block-anchored, where books are not, so a list of `rfq:` entries
+/// alone leaves the market without a block label and its quotes answer `not_ready` forever.
 pub(crate) fn has_tycho_protocols(protocols: &[String]) -> bool {
     protocols
         .iter()
@@ -155,13 +153,6 @@ pub fn matches_streamed_system(entry: &str, protocol_system: &str) -> bool {
         (Some(requested_venue), Some(streamed_venue)) => requested_venue == streamed_venue,
         _ => false,
     }
-}
-
-/// Whether any requested protocol is served by an RFQ client.
-pub(crate) fn has_rfq_protocols(protocols: &[String]) -> bool {
-    protocols
-        .iter()
-        .any(|protocol| protocol.starts_with(RFQ_PREFIX))
 }
 
 /// The `exclusive:` prefix was applied to a protocol system that has no exclusive variant.
@@ -440,8 +431,8 @@ pub(crate) fn register_exchanges(
                 builder = builder.exchange::<LunarBaseState>("lunarbase", tvl_filter.clone(), None);
             }
             p if !is_tycho_system(p) => {
-                // Handled by register_rfq and open_price_level_stream, which stream from their
-                // own endpoints rather than from Tycho.
+                // Handled by BookStream::open and open_price_level_stream, which stream from
+                // their own endpoints rather than from Tycho.
                 continue;
             }
             _ => {
@@ -452,48 +443,6 @@ pub(crate) fn register_exchanges(
     Ok(builder)
 }
 
-pub(crate) fn register_rfq(
-    mut rfq_stream_builder: RFQStreamBuilder,
-    chain: Chain,
-    min_tvl: f64,
-    protocols: &[String],
-    rfq_tokens: std::collections::HashSet<Bytes>,
-) -> Result<RFQStreamBuilder, DataFeedError> {
-    for protocol in protocols {
-        match protocol.as_str() {
-            "rfq:bebop" => {
-                let key = get_env("BEBOP_KEY")?;
-                info!("Adding {protocol} RFQ client...");
-                let bebop_client = BebopClientBuilder::new(chain, key)
-                    .tokens(rfq_tokens.clone())
-                    .tvl_threshold(min_tvl)
-                    .build()
-                    .map_err(|e| DataFeedError::StreamError(e.to_string()))?;
-                rfq_stream_builder =
-                    rfq_stream_builder.add_client::<BebopState>("bebop", Box::new(bebop_client));
-            }
-            "rfq:hashflow" => {
-                let user = get_env("HASHFLOW_USER")?;
-                let key = get_env("HASHFLOW_KEY")?;
-                info!("Adding {protocol} RFQ client...");
-                let hashflow_client = HashflowClientBuilder::new(chain, user, key)
-                    .tokens(rfq_tokens.clone())
-                    .tvl_threshold(min_tvl)
-                    .poll_time(Duration::from_secs(30))
-                    .build()
-                    .map_err(|e| DataFeedError::StreamError(e.to_string()))?;
-                rfq_stream_builder = rfq_stream_builder
-                    .add_client::<HashflowState>("hashflow", Box::new(hashflow_client));
-            }
-            p if p.starts_with(RFQ_PREFIX) => {
-                warn!("Skipping unknown RFQ protocol: {}", p);
-            }
-            _ => {}
-        }
-    }
-    Ok(rfq_stream_builder)
-}
-
 /// Opens the Titan pAMM price level stream for the requested `pricelevelstream:` venues.
 ///
 /// Returns `None` when no entry names the stream. Every named venue must be one of the venues
@@ -501,7 +450,7 @@ pub(crate) fn register_rfq(
 /// set is a configuration error rather than a warning, because these entries are always written
 /// by hand and a typo would otherwise silently stream nothing.
 ///
-/// The stream reconnects on its own for as long as it is polled, so — unlike the RFQ clients —
+/// The stream reconnects on its own for as long as it is polled, so — unlike the book feeds —
 /// it needs no supervising task.
 ///
 /// A venue served here may also be integrated as a Tycho protocol system (FermiSwap is also
@@ -564,10 +513,6 @@ pub fn open_price_level_stream_for_recording(
     tokens: &HashMap<Bytes, Token>,
 ) -> Result<Option<impl Stream<Item = Update> + Send>, String> {
     open_price_level_stream(chain, protocols, tokens).map_err(|e| e.to_string())
-}
-
-fn get_env(var: &str) -> Result<String, DataFeedError> {
-    env::var(var).map_err(|_| DataFeedError::Config(format!("{} env var not set", var)))
 }
 
 #[cfg(test)]

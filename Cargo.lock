@@ -263,9 +263,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-chains"
-version = "0.2.37"
+version = "0.2.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5fdcfed8f106be3df944054aaa42bc13ae103a3ac8a9f4b08d4f053e3a743f8"
+checksum = "c1c4f6f6f020f38a4ef079428b5c7009e913bf8102e4d65a90c6cb2cf93800eb"
 dependencies = [
  "alloy-primitives 1.6.0",
  "num_enum",
@@ -4146,7 +4146,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.4",
+ "socket2 0.5.10",
  "system-configuration",
  "tokio",
  "tower-service",
@@ -4737,9 +4737,9 @@ checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 
 [[package]]
 name = "lunarbase-pmm-math"
-version = "0.2.4"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cbe3b1d7b710adc1f7d0dfbe5e58d29dfe1cbd715cb8985f1f253c5d5327662"
+checksum = "fec264cd989b478db259a136914523cf7e681beeb7cbb07e4506df045ccd8a37"
 dependencies = [
  "ruint",
 ]
@@ -5713,7 +5713,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls",
- "socket2 0.6.4",
+ "socket2 0.5.10",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -5751,7 +5751,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.4",
+ "socket2 0.5.10",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -7950,9 +7950,8 @@ dependencies = [
 
 [[package]]
 name = "tycho-client"
-version = "0.421.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d46e6466b1742aa49c1b28085f8067a33449a5f5f0a0b029cd9a4db543a636b6"
+version = "0.465.0"
+source = "git+https://github.com/propeller-heads/tycho.git?branch=hp%2Frefactor%2Fupdate-block-number#23070babf5958bda9ca80664c1f8778e11c42317"
 dependencies = [
  "async-trait",
  "backoff",
@@ -7962,6 +7961,7 @@ dependencies = [
  "hex",
  "hyper 0.14.32",
  "lru",
+ "rand 0.8.6",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -7980,9 +7980,8 @@ dependencies = [
 
 [[package]]
 name = "tycho-common"
-version = "0.421.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61aab309423be3e07e7d83e8852419f963ba5fb416f13faf5455fd4bb9a217e2"
+version = "0.465.0"
+source = "git+https://github.com/propeller-heads/tycho.git?branch=hp%2Frefactor%2Fupdate-block-number#23070babf5958bda9ca80664c1f8778e11c42317"
 dependencies = [
  "anyhow",
  "arrayvec",
@@ -8009,9 +8008,8 @@ dependencies = [
 
 [[package]]
 name = "tycho-ethereum"
-version = "0.421.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a615911aec7f506134cca443ae21fb66bbadc00e3d105cd4f134299ba2588b7"
+version = "0.465.0"
+source = "git+https://github.com/propeller-heads/tycho.git?branch=hp%2Frefactor%2Fupdate-block-number#23070babf5958bda9ca80664c1f8778e11c42317"
 dependencies = [
  "alloy",
  "async-trait",
@@ -8031,15 +8029,15 @@ dependencies = [
 
 [[package]]
 name = "tycho-execution"
-version = "0.421.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efdc68fd8cebe02055308c19668998dad3d7adc1c7baeb6a80c47d7413b846ef"
+version = "0.465.0"
+source = "git+https://github.com/propeller-heads/tycho.git?branch=hp%2Frefactor%2Fupdate-block-number#23070babf5958bda9ca80664c1f8778e11c42317"
 dependencies = [
  "alloy",
  "chrono",
  "clap",
  "dotenvy",
  "hex",
+ "metrics",
  "num-bigint",
  "once_cell",
  "reqwest 0.12.28",
@@ -8055,9 +8053,8 @@ dependencies = [
 
 [[package]]
 name = "tycho-simulation"
-version = "0.421.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdf0726d02339d561f77bc8096450796f64f37d8a73136692e0fffc395f3b7ab"
+version = "0.465.0"
+source = "git+https://github.com/propeller-heads/tycho.git?branch=hp%2Frefactor%2Fupdate-block-number#23070babf5958bda9ca80664c1f8778e11c42317"
 dependencies = [
  "alloy",
  "alloy-chains",
@@ -8065,7 +8062,10 @@ dependencies = [
  "async-stream",
  "async-trait",
  "balancer-maths-rust",
+ "base64",
+ "bytes",
  "chrono",
+ "derive_more 2.1.1",
  "dotenv",
  "ekubo_sdk",
  "enum_delegate",
@@ -8077,6 +8077,7 @@ dependencies = [
  "http 1.4.2",
  "itertools 0.13.0",
  "lunarbase-pmm-math",
+ "metrics",
  "num-bigint",
  "num-traits",
  "prost 0.13.5",
@@ -8087,6 +8088,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "serde_with",
  "strum_macros",
  "thiserror 1.0.69",
  "tokio",

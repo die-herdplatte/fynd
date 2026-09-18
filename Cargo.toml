@@ -220,3 +220,15 @@ wiremock = "0.6"
 [profile.profiling]
 inherits = "release"
 debug = true
+
+# Tycho under test: #1562, which renames `Update.block_number_or_timestamp` to `block_number`.
+# The feed layer itself (#1554) and the venue port (#1561) are on main and reach crates.io with
+# 0.466.0; this block exists only for the rename, so drop it once #1562 is released.
+# Tracks the branch rather than a commit: #1562 is rebased as main moves, and Cargo.lock pins
+# the commit anyway.
+[patch.crates-io]
+tycho-common = { git = "https://github.com/propeller-heads/tycho.git", branch = "hp/refactor/update-block-number" }
+tycho-client = { git = "https://github.com/propeller-heads/tycho.git", branch = "hp/refactor/update-block-number" }
+tycho-ethereum = { git = "https://github.com/propeller-heads/tycho.git", branch = "hp/refactor/update-block-number" }
+tycho-simulation = { git = "https://github.com/propeller-heads/tycho.git", branch = "hp/refactor/update-block-number" }
+tycho-execution = { git = "https://github.com/propeller-heads/tycho.git", branch = "hp/refactor/update-block-number" }
